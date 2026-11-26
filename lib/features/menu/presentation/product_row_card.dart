@@ -19,9 +19,13 @@ class ProductRowCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bills = ref.watch(todayBillsProvider).value ?? [];
-    final count = bills
-        .where((b) => !b.isVoid)
-        .fold<int>(0, (sum, b) => sum + b.items.where((it) => it.productId == product.id).fold<int>(0, (iSum, it) => iSum + it.qty));
+    final count = bills.where((b) => !b.isVoid).fold<int>(
+        0,
+        (sum, b) =>
+            sum +
+            b.items
+                .where((it) => it.productId == product.id)
+                .fold<int>(0, (iSum, it) => iSum + it.qty));
     final todayProductRevenue = count * product.price;
 
     return Container(
@@ -61,7 +65,8 @@ class ProductRowCard extends ConsumerWidget {
                   top: 4,
                   left: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
@@ -84,6 +89,7 @@ class ProductRowCard extends ConsumerWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   product.name,
@@ -91,25 +97,24 @@ class ProductRowCard extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '₹${product.price} each',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Today: $count sold (₹$todayProductRevenue)',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  '₹${product.price} each',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  count > 0 ? 'Today: $count sold (₹$todayProductRevenue)' : '0 sold today',
+                  style: AppTextStyles.caption.copyWith(
+                    color: count > 0 ? AppColors.textPrimary.withValues(alpha: 0.8) : AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -123,7 +128,8 @@ class ProductRowCard extends ConsumerWidget {
               ref.read(todayTotalProvider.notifier).addQuickSale(product, 1);
 
               // 2. Direct sale in repository
-              await BillingRepository().createDirectProductSale(product: product, qty: 1);
+              await BillingRepository()
+                  .createDirectProductSale(product: product, qty: 1);
 
               // 3. Keep providers in sync
               ref.read(todayBillsProvider.notifier).refresh();

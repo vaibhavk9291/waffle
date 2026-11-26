@@ -33,8 +33,8 @@ class QuantityStepper extends StatelessWidget {
             }
           },
           child: Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: AppColors.surfaceHigh.withValues(alpha: canRemove ? 1.0 : 0.3),
               shape: BoxShape.circle,
@@ -42,28 +42,32 @@ class QuantityStepper extends StatelessWidget {
             alignment: Alignment.center,
             child: Icon(
               Icons.remove,
-              size: 20,
+              size: 18,
               color: AppColors.textPrimary.withValues(alpha: canRemove ? 1.0 : 0.3),
             ),
           ),
         ),
 
-        // Count with AnimatedSwitcher
+        // Count with AnimatedSwitcher and FittedBox to prevent any pixel overflow
         Container(
-          constraints: const BoxConstraints(minWidth: 38),
+          constraints: const BoxConstraints(minWidth: 26, maxWidth: 40),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
-            transitionBuilder: (child, animation) {
-              return ScaleTransition(scale: animation, child: child);
-            },
-            child: Text(
-              '$count',
-              key: ValueKey<int>(count),
-              style: AppTextStyles.cardTitle.copyWith(
-                color: count > 0 ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Text(
+                '$count',
+                key: ValueKey<int>(count),
+                style: AppTextStyles.cardTitle.copyWith(
+                  color: count > 0 ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
               ),
             ),
           ),
@@ -77,23 +81,23 @@ class QuantityStepper extends StatelessWidget {
             onAdd();
           },
           child: Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: const BoxDecoration(
               gradient: AppGradients.primaryButton,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: AppColors.buttonGlow,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
                 ),
               ],
             ),
             alignment: Alignment.center,
             child: const Icon(
               Icons.add,
-              size: 20,
+              size: 18,
               color: AppColors.onPrimary,
             ),
           ),
@@ -103,59 +107,27 @@ class QuantityStepper extends StatelessWidget {
   }
 }
 
-class _StepperButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onTap;
+class _StepperButton extends StatelessWidget {
   final bool enabled;
+  final VoidCallback onTap;
+  final Widget child;
 
   const _StepperButton({
-    required this.child,
-    required this.onTap,
     required this.enabled,
+    required this.onTap,
+    required this.child,
   });
 
   @override
-  State<_StepperButton> createState() => _StepperButtonState();
-}
-
-class _StepperButtonState extends State<_StepperButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _anim;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _anim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
-    _scale = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _anim, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        if (widget.enabled) _anim.forward();
-      },
-      onTapUp: (_) {
-        if (widget.enabled) _anim.reverse();
-      },
-      onTapCancel: () => _anim.reverse(),
-      onTap: widget.enabled ? widget.onTap : null,
-      behavior: HitTestBehavior.opaque,
-      child: ScaleTransition(
-        scale: _scale,
-        child: widget.child,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(18),
+        splashColor: AppColors.primary.withValues(alpha: 0.2),
+        highlightColor: AppColors.primary.withValues(alpha: 0.1),
+        child: child,
       ),
     );
   }
