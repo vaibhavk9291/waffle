@@ -1,0 +1,67 @@
+name: shrimant
+description: "Shrimant Street Food - Billing, Daily Sales & Expense Counter App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Supabase & Backend
+  supabase_flutter: ^2.8.0
+
+  # State Management & Routing
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+
+  # Typography & Design
+  google_fonts: ^6.2.1
+  shimmer: ^3.0.0
+  intl: ^0.19.0
+
+  # Local Storage & UUID
+  shared_preferences: ^2.3.3
+  uuid: ^4.5.1
+  crypto: ^3.0.6
+
+  # Printing & Sharing
+  printing: ^5.13.3
+  pdf: ^3.11.1
+  share_plus: ^10.1.3
+  csv: ^6.0.0
+
+  # Charting for History
+  fl_chart: ^0.69.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.2
+  flutter_native_splash: ^2.4.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/branding/app_icon_1024.png"
+  adaptive_icon_background: "#2B0F3A"
+  adaptive_icon_foreground: "assets/branding/app_icon_1024.png"
+
+flutter_native_splash:
+  color: "#3A1250"
+  color_dark: "#150820"
+  image: "assets/branding/logo_shrimant.png"
+  android_12:
+    image: "assets/branding/logo_shrimant.png"
+    icon_background_color: "#3A1250"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/branding/
+    - assets/products/
