@@ -9,6 +9,7 @@ import '../../auth/presentation/auth_controller.dart';
 import '../../billing/data/billing_repository.dart';
 import '../../billing/presentation/bills_screen.dart';
 import '../../billing/presentation/cart_provider.dart';
+import '../../billing/presentation/manual_print_bill_sheet.dart';
 import '../../expenses/data/expense_repository.dart';
 import '../../expenses/domain/expense.dart';
 import '../../expenses/presentation/expense_sheet.dart';
@@ -16,6 +17,7 @@ import '../../history/data/history_repository.dart';
 import '../../history/domain/daily_total.dart';
 import '../../history/presentation/history_screen.dart';
 import '../../menu/data/menu_repository.dart';
+import '../../menu/domain/product.dart';
 import '../../menu/domain/section.dart';
 import '../../menu/presentation/section_screen.dart';
 import '../../owner/presentation/owner_portal_dialog.dart';
@@ -38,6 +40,28 @@ class TodayTotalNotifier extends StateNotifier<AsyncValue<DailyTotal>> {
     }
   }
 
+  void addQuickSale(Product product, int qty) {
+    state.whenData((current) {
+      state = AsyncData(current.copyWith(
+        billsCount: current.billsCount + 1,
+        itemsSold: current.itemsSold + qty,
+        grossRevenue: current.grossRevenue + (product.price * qty),
+        net: current.net + (product.price * qty),
+      ));
+    });
+  }
+
+  void removeQuickSale(Product product, int qty) {
+    state.whenData((current) {
+      state = AsyncData(current.copyWith(
+        billsCount: (current.billsCount - 1).clamp(0, double.infinity).toInt(),
+        itemsSold: (current.itemsSold - qty).clamp(0, double.infinity).toInt(),
+        grossRevenue: (current.grossRevenue - (product.price * qty)).clamp(0, double.infinity).toInt(),
+        net: (current.net - (product.price * qty)).clamp(0, double.infinity).toInt(),
+      ));
+    });
+  }
+
   void resetToZero() {
     final today = SupabaseService.instance.currentISTDate;
     state = AsyncData(DailyTotal.empty(today));
@@ -54,6 +78,15 @@ final todayExpensesProvider = FutureProvider<List<Expense>>((ref) async {
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  void _openManualPrintBillSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const ManualPrintBillSheet(),
+    );
+  }
 
   void _resetTodayCounterDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -113,7 +146,6 @@ class HomeScreen extends ConsumerWidget {
     final sectionsAsync = ref.watch(sectionsProvider);
     final todayTotalAsync = ref.watch(todayTotalProvider);
     final expensesAsync = ref.watch(todayExpensesProvider);
-    final cart = ref.watch(cartProvider);
 
     return Scaffold(
       body: Container(
@@ -172,6 +204,26 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    GestureDetector(
+                      onTap: () => _openManualPrintBillSheet(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHigh,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.hairline),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.print_rounded, size: 16, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text('Bill', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     const LiveChip(),
                     const SizedBox(width: 10),
                     // Logout button
@@ -193,13 +245,93 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+
+                // Top Dashboard Action: Print Bill (Manual)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceHigh,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.hairline),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.cardShadow,
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => _openManualPrintBillSheet(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: AppGradients.primaryButton,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.print_rounded,
+                                color: AppColors.onPrimary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Print Bill (Manual)',
+                                    style: AppTextStyles.cardTitle.copyWith(fontSize: 15),
+                                  ),
+                                  Text(
+                                    'Add products manually & print thermal receipt',
+                                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.hairline),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'Print',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.primary),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
                 // Hero Summary Card: directly reflects current added items + today's sales
                 todayTotalAsync.when(
-                  data: (total) => _buildHeroCard(context, ref, total, cart),
+                  data: (total) => _buildHeroCard(context, ref, total),
                   loading: () => _buildHeroSkeleton(),
-                  error: (_, __) => _buildHeroCard(context, ref, DailyTotal.empty('Today'), cart),
+                  error: (_, __) => _buildHeroCard(context, ref, DailyTotal.empty('Today')),
                 ),
                 const SizedBox(height: 24),
 
@@ -228,10 +360,10 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroCard(BuildContext context, WidgetRef ref, DailyTotal total, CartState cart) {
+  Widget _buildHeroCard(BuildContext context, WidgetRef ref, DailyTotal total) {
     // Whenever products are added, they are directly added to the total amount displayed above!
-    final liveGross = total.grossRevenue + cart.subtotal;
-    final liveItems = total.itemsSold + cart.totalItemsCount;
+    final liveGross = total.grossRevenue;
+    final liveItems = total.itemsSold;
     final liveNet = liveGross - total.expensesTotal;
 
     return Container(
@@ -283,23 +415,6 @@ class HomeScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (cart.subtotal > 0)
-                    Container(
-                      margin: const EdgeInsets.only(right: 32),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.onPrimary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Live +₹${cart.subtotal}',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.onPrimary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
                 ],
               ),
               const SizedBox(height: 4),

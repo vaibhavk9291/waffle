@@ -4,9 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/date_rollover_service.dart';
 import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/supabase_service.dart';
-import '../../../core/widgets/floating_bill_bar.dart';
 import '../../../core/widgets/floating_bottom_nav.dart';
-import '../../billing/presentation/bill_sheet.dart';
 import '../../billing/presentation/bills_screen.dart';
 import '../../history/presentation/history_screen.dart';
 import '../../home/presentation/home_screen.dart';
@@ -80,23 +78,6 @@ class _MainShellState extends ConsumerState<MainShell> {
           IndexedStack(
             index: _currentIndex,
             children: _screens,
-          ),
-
-          // Floating Bill Bar (Shows on Home or any screen when items are present)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 76,
-            child: FloatingBillBar(
-              onCheckout: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => const BillSheet(),
-                );
-              },
-            ),
           ),
 
           // Floating Bottom Navigation

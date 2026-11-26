@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/gradients.dart';
 import '../../../core/theme/text_styles.dart';
-import '../../../core/widgets/floating_bill_bar.dart';
-import '../../billing/presentation/bill_sheet.dart';
-import '../../billing/presentation/cart_provider.dart';
 import '../../home/presentation/home_screen.dart';
 import '../data/menu_repository.dart';
 import '../domain/product.dart';
@@ -27,11 +24,8 @@ class SectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productsAsync = ref.watch(productsProvider);
-    final cart = ref.watch(cartProvider);
     final todayTotalAsync = ref.watch(todayTotalProvider);
-
     final storedGross = todayTotalAsync.value?.grossRevenue ?? 0;
-    final liveTotalAmount = storedGross + cart.subtotal;
 
     return Scaffold(
       body: Container(
@@ -72,7 +66,7 @@ class SectionScreen extends ConsumerWidget {
                             style: AppTextStyles.displayTitle.copyWith(fontSize: 20),
                           ),
                           Text(
-                            'Total Sales: ₹$liveTotalAmount',
+                            'Total Sales: ₹$storedGross',
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -82,22 +76,6 @@ class SectionScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // Live Cart Subtotal Badge
-                    if (cart.subtotal > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.primaryButton,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '+ ₹${cart.subtotal}',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.onPrimary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -118,7 +96,7 @@ class SectionScreen extends ConsumerWidget {
                         .toList();
 
                     return ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                       children: [
                         ...standardProducts.map((p) => ProductRowCard(product: p)),
                         if (flavorProducts.isNotEmpty) ...[
@@ -145,19 +123,6 @@ class SectionScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // Floating Bill Bar
-              FloatingBillBar(
-                onCheckout: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const BillSheet(),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
             ],
           ),
         ),

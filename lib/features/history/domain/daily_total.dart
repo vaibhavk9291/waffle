@@ -38,4 +38,24 @@ class DailyTotal {
       net: (json['net'] as num?)?.toInt() ?? 0,
     );
   }
+
+  DailyTotal copyWith({
+    String? businessDate,
+    int? billsCount,
+    int? itemsSold,
+    int? grossRevenue,
+    int? totalDiscount,
+    int? expensesTotal,
+    int? net,
+  }) {
+    return DailyTotal(
+      businessDate: businessDate ?? this.businessDate,
+      billsCount: billsCount ?? this.billsCount,
+      itemsSold: itemsSold ?? this.itemsSold,
+      grossRevenue: grossRevenue ?? this.grossRevenue,
+      totalDiscount: totalDiscount ?? this.totalDiscount,
+      expensesTotal: expensesTotal ?? this.expensesTotal,
+      net: net ?? this.net,
+    );
+  }
 }

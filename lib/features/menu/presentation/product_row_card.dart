@@ -3,29 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/quantity_stepper.dart';
-import '../../billing/presentation/cart_provider.dart';
-import '../../history/data/history_repository.dart';
+import '../../billing/data/billing_repository.dart';
+import '../../billing/presentation/bills_screen.dart';
+import '../../home/presentation/home_screen.dart';
 import '../domain/product.dart';
-
-final todayProductSummaryProvider =
-    FutureProvider<Map<String, int>>((ref) async {
-  try {
-    final todayTotal = await HistoryRepository().getTodayTotal();
-    final list = await HistoryRepository()
-        .getDailyProductSummary(todayTotal.businessDate);
-    final map = <String, int>{};
-    for (final item in list) {
-      final prodId = item['product_id']?.toString() ?? '';
-      final revenue = (item['revenue'] as num?)?.toInt() ?? 0;
-      if (prodId.isNotEmpty) {
-        map[prodId] = revenue;
-      }
-    }
-    return map;
-  } catch (_) {
-    return <String, int>{};
-  }
-});
 
 class ProductRowCard extends ConsumerWidget {
   final Product product;
@@ -37,14 +18,11 @@ class ProductRowCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cart = ref.watch(cartProvider);
-    final count = cart.getQuantity(product.id);
-    final summaryAsync = ref.watch(todayProductSummaryProvider);
-
-    // Calculate today's sales for this product (stored sales + live in-cart)
-    final storedTodayRevenue = summaryAsync.value?[product.id] ?? 0;
-    final liveProductTodayRevenue =
-        storedTodayRevenue + (count * product.price);
+    final bills = ref.watch(todayBillsProvider).value ?? [];
+    final count = bills
+        .where((b) => !b.isVoid)
+        .fold<int>(0, (sum, b) => sum + b.items.where((it) => it.productId == product.id).fold<int>(0, (iSum, it) => iSum + it.qty));
+    final todayProductRevenue = count * product.price;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -83,8 +61,7 @@ class ProductRowCard extends ConsumerWidget {
                   top: 4,
                   left: 4,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(8),
@@ -126,7 +103,7 @@ class ProductRowCard extends ConsumerWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Today: ₹$liveProductTodayRevenue',
+                      'Today: $count sold (₹$todayProductRevenue)',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 11,
@@ -138,11 +115,33 @@ class ProductRowCard extends ConsumerWidget {
             ),
           ),
 
-          // Stepper
+          // Stepper: directly adds to sell counter
           QuantityStepper(
             count: count,
-            onAdd: () => ref.read(cartProvider.notifier).addItem(product),
-            onRemove: () => ref.read(cartProvider.notifier).removeItem(product),
+            onAdd: () async {
+              // 1. Optimistic immediate update to sales counter
+              ref.read(todayTotalProvider.notifier).addQuickSale(product, 1);
+
+              // 2. Direct sale in repository
+              await BillingRepository().createDirectProductSale(product: product, qty: 1);
+
+              // 3. Keep providers in sync
+              ref.read(todayBillsProvider.notifier).refresh();
+              ref.read(todayTotalProvider.notifier).refresh();
+            },
+            onRemove: () async {
+              if (count <= 0) return;
+
+              // 1. Optimistic immediate update to sales counter
+              ref.read(todayTotalProvider.notifier).removeQuickSale(product, 1);
+
+              // 2. Void last sale of this product
+              await BillingRepository().voidLastBillForProduct(product.id);
+
+              // 3. Keep providers in sync
+              ref.read(todayBillsProvider.notifier).refresh();
+              ref.read(todayTotalProvider.notifier).refresh();
+            },
           ),
         ],
       ),

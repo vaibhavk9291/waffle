@@ -5,6 +5,7 @@ import '../../../core/services/offline_sync_service.dart';
 import '../../../core/services/supabase_service.dart';
 import '../domain/bill.dart';
 import '../domain/cart_item.dart';
+import '../../menu/domain/product.dart';
 
 class BillingRepository {
   final SupabaseService _supabase = SupabaseService.instance;
@@ -162,6 +163,48 @@ class BillingRepository {
       debugPrint('voidBill error: $e');
       rethrow;
     }
+  }
+
+  /// Direct quick sale of 1 or more items of a product without checkout popup
+  Future<Map<String, dynamic>> createDirectProductSale({
+    required Product product,
+    int qty = 1,
+  }) async {
+    return createBill(
+      items: [CartItem(product: product, qty: qty)],
+      discount: 0,
+      paymentMode: 'cash',
+    );
+  }
+
+  /// Void the most recent bill containing the specified product (undo accidental tap)
+  Future<bool> voidLastBillForProduct(String productId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final localList = prefs.getStringList(_localBillsKey) ?? [];
+
+    for (int i = 0; i < localList.length; i++) {
+      try {
+        final map = jsonDecode(localList[i]) as Map<String, dynamic>;
+        final items = (map['bill_items'] as List?) ?? [];
+        final hasProduct = items.any((it) => it['product_id'] == productId);
+        final isVoid = map['is_void'] == true || map['status'] == 'void';
+        if (hasProduct && !isVoid) {
+          final billId = map['id']?.toString() ?? '';
+          localList.removeAt(i);
+          await prefs.setStringList(_localBillsKey, localList);
+
+          if (_supabase.isInitialized && billId.isNotEmpty) {
+            try {
+              await voidBill(billId: billId, reason: 'Quick sale undo');
+            } catch (e) {
+              debugPrint('voidLastBill remote error: $e');
+            }
+          }
+          return true;
+        }
+      } catch (_) {}
+    }
+    return false;
   }
 
   /// Delete saved amounts and start completely fresh from scratch (atomic & fast)
